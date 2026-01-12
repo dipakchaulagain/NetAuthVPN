@@ -1,11 +1,11 @@
 #!/bin/bash
-# VPN Management Web UI Installation Script
+# NetAuthVPN Installation Script
 # This script sets up the Web UI application with all dependencies
 
 set -e
 
 echo "========================================"
-echo " VPN Management Web UI - Installation"
+echo " NetAuthVPN - Installation"
 echo "========================================"
 echo ""
 

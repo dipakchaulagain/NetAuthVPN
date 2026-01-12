@@ -209,7 +209,7 @@ class SiteSettings(db.Model):
     __tablename__ = 'site_settings'
     
     id = db.Column(db.Integer, primary_key=True)
-    site_title = db.Column(db.String(128), default='VPN Manager')
+    site_title = db.Column(db.String(128), default='NetAuthVPN')
     logo_path = db.Column(db.String(255))
     favicon_path = db.Column(db.String(255))
     theme_color = db.Column(db.String(7), default='#667eea')  # Hex color code (gradient start)

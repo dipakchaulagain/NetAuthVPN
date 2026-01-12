@@ -1,4 +1,4 @@
-# VPN Management Web UI
+# NetAuthVPN
 
 A comprehensive Flask-based web application for managing OpenVPN/FreeRADIUS/LDAP infrastructure with advanced features for user management, security, monitoring, auditing, and customization.
 
@@ -175,7 +175,7 @@ gunicorn -w 4 -b 0.0.0.0:5000 --timeout 120 run:app
 
 ```ini
 [Unit]
-Description=VPN Management Web UI
+Description=NetAuthVPN Web UI
 After=network.target mysql.service
 
 [Service]

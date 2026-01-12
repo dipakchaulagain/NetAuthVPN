@@ -1,4 +1,4 @@
--- VPN Management Web UI Database Schema
+-- NetAuthVPN Database Schema
 -- This creates the necessary tables for the web interface
 
 USE radius;
@@ -100,7 +100,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
 -- Site Settings Table (for customization)
 CREATE TABLE IF NOT EXISTS site_settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    site_title VARCHAR(128) DEFAULT 'VPN Manager',
+    site_title VARCHAR(128) DEFAULT 'NetAuthVPN',
     logo_path VARCHAR(255),
     favicon_path VARCHAR(255),
     theme_color VARCHAR(7) DEFAULT '#667eea',
@@ -112,5 +112,5 @@ CREATE TABLE IF NOT EXISTS site_settings (
 
 -- Insert default site settings
 INSERT INTO site_settings (site_title, theme_color, theme_color_secondary) 
-VALUES ('VPN Manager', '#667eea', '#764ba2')
+VALUES ('NetAuthVPN', '#667eea', '#764ba2')
 ON DUPLICATE KEY UPDATE id=id;

@@ -4,7 +4,7 @@ ALTER TABLE webui_users ADD COLUMN password_must_change BOOLEAN DEFAULT FALSE AF
 -- Create site_settings table
 CREATE TABLE IF NOT EXISTS site_settings (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    site_title VARCHAR(128) DEFAULT 'VPN Manager',
+    site_title VARCHAR(128) DEFAULT 'NetAuthVPN',
     logo_path VARCHAR(255),
     favicon_path VARCHAR(255),
     theme_color VARCHAR(7) DEFAULT '#667eea',
@@ -14,4 +14,4 @@ CREATE TABLE IF NOT EXISTS site_settings (
 );
 
 -- Insert default settings
-INSERT INTO site_settings (site_title, theme_color) VALUES ('VPN Manager', '#667eea');
+INSERT INTO site_settings (site_title, theme_color) VALUES ('NetAuthVPN', '#667eea');

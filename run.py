@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-VPN Management Web UI
+NetAuthVPN
 Entry point for the Flask application
 """
 

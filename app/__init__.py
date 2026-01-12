@@ -60,7 +60,7 @@ def create_app(config_name='default'):
         from app.models import SiteSettings
         settings = SiteSettings.query.first()
         if not settings:
-            settings = SiteSettings(site_title='VPN Manager', theme_color='#667eea', theme_color_secondary='#764ba2')
+            settings = SiteSettings(site_title='NetAuthVPN', theme_color='#667eea', theme_color_secondary='#764ba2')
         return dict(site_settings=settings)
     
     return app

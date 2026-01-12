@@ -1,8 +1,8 @@
-# OpenVPN + FreeRADIUS + LDAP Integration
+# NetAuthVPN - Infrastructure Scripts
 
 ## 🎯 Overview
 
-This project provides automated installation and configuration scripts for deploying a production-ready OpenVPN server with FreeRADIUS authentication, LDAP/Active Directory integration, and DNSmasq for DNS forwarding. The solution enables centralized user authentication through RADIUS, with dynamic IP assignment and routing controlled by your RADIUS server.
+This project, part of the **NetAuthVPN** solution, provides automated installation and configuration scripts for deploying a production-ready OpenVPN server with FreeRADIUS authentication, LDAP/Active Directory integration, and DNSmasq for DNS forwarding.
 
 ### Key Features
 

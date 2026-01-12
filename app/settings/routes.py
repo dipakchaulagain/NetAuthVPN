@@ -23,7 +23,7 @@ def index():
     settings = SiteSettings.query.first()
     if not settings:
         # Create default settings if none exist
-        settings = SiteSettings(site_title='VPN Manager', theme_color='#667eea')
+        settings = SiteSettings(site_title='NetAuthVPN', theme_color='#667eea')
         db.session.add(settings)
         db.session.commit()
     

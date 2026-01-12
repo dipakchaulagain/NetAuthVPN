@@ -1,4 +1,4 @@
-# VPN Management Web UI - Quick Start Guide
+# NetAuthVPN - Quick Start Guide
 
 ## Installation Steps
 
