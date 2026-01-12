@@ -2,6 +2,9 @@
 
 A comprehensive Flask-based web application for managing OpenVPN/FreeRADIUS/LDAP infrastructure with advanced features for user management, security, monitoring, auditing, and customization.
 
+> [!IMPORTANT]
+> **Infrastructure Deployment**: This Web UI manages the network infrastructure. If you haven't deployed the core services (OpenVPN, FreeRADIUS, DNSmasq) yet, please use the automated scripts provided in the [`scripts/`](scripts/) directory. See [scripts/README.md](scripts/README.md) for deployment instructions.
+
 ## 🌟 Key Features
 
 ### 👥 User Management
