@@ -173,26 +173,92 @@ mkdir -p app/static/uploads
 chmod 755 logs
 chmod 755 app/static/uploads
 
+
 echo ""
-echo "========================================"
-echo " Installation Complete!"
-echo "========================================"
-echo ""
-echo "Next steps:"
-echo ""
-echo "1. Start the application:"
-echo "   cd $SCRIPT_DIR"
-echo "   source venv/bin/activate"
-echo "   python3 run.py"
-echo ""
-echo "2. Access the web interface:"
-echo "   http://$(hostname -I | awk '{print $1}'):5000"
-echo ""
-echo "3. Login with your admin credentials"
-echo ""
-echo "For production deployment with Gunicorn:"
-echo "   gunicorn -w 4 -b 0.0.0.0:5000 --timeout 120 run:app"
-echo ""
-echo "Optional: Set up systemd service for auto-start"
-echo "   See README.md for systemd configuration"
-echo ""
+echo "[10/10] Systemd Service Setup"
+read -p "Do you want to setup systemd service for NetAuthVPN? (Y/n): " SETUP_SERVICE
+SETUP_SERVICE=${SETUP_SERVICE:-Y}
+
+if [ "$SETUP_SERVICE" = "y" ] || [ "$SETUP_SERVICE" = "Y" ]; then
+    echo "Setting up NetAuthVPN service..."
+    
+    # Create system user
+    if ! id "netauthvpn" &>/dev/null; then
+        useradd -r -s /bin/false netauthvpn
+        echo "Created system user 'netauthvpn'"
+    else
+        echo "User 'netauthvpn' already exists"
+    fi
+    
+    # Configure sudoers
+    echo "Configuring sudoers permissions..."
+    cat > /etc/sudoers.d/netauthvpn << 'EOF'
+netauthvpn ALL=(ALL) NOPASSWD: /bin/systemctl restart openvpn-server@server
+netauthvpn ALL=(ALL) NOPASSWD: /bin/systemctl restart freeradius
+netauthvpn ALL=(ALL) NOPASSWD: /bin/systemctl restart dnsmasq
+netauthvpn ALL=(ALL) NOPASSWD: /bin/systemctl status *
+netauthvpn ALL=(ALL) NOPASSWD: /sbin/iptables *
+netauthvpn ALL=(ALL) NOPASSWD: /sbin/iptables-save *
+netauthvpn ALL=(ALL) NOPASSWD: /sbin/iptables-restore *
+netauthvpn ALL=(ALL) NOPASSWD: /bin/cp /tmp/hosts.tmp /etc/hosts
+EOF
+    chmod 0440 /etc/sudoers.d/netauthvpn
+    
+    # Create service file
+    echo "Creating systemd service file..."
+    cat > /etc/systemd/system/netauthvpn.service << EOF
+[Unit]
+Description=NetAuthVPN Web UI
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=netauthvpn
+Group=netauthvpn
+WorkingDirectory=$SCRIPT_DIR
+Environment="PATH=$SCRIPT_DIR/venv/bin"
+ExecStart=$SCRIPT_DIR/venv/bin/gunicorn -w 4 -b 0.0.0.0:5000 --timeout 120 run:app
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    # Set ownership
+    echo "Setting directory ownership..."
+    chown -R netauthvpn:netauthvpn "$SCRIPT_DIR"
+    
+    # Enable and start service
+    echo "Enabling and starting service..."
+    systemctl daemon-reload
+    systemctl enable netauthvpn
+    systemctl start netauthvpn
+    
+    echo "✅ Service 'netauthvpn' is active and running!"
+    echo "   Access at: http://$(hostname -I | awk '{print $1}'):5000"
+
+else
+    echo "Skipping service setup."
+    
+    echo ""
+    echo "========================================"
+    echo " Installation Complete!"
+    echo "========================================"
+    echo ""
+    echo "Manual Run Steps:"
+    echo ""
+    echo "1. Start the application:"
+    echo "   cd $SCRIPT_DIR"
+    echo "   source venv/bin/activate"
+    echo "   python3 run.py"
+    echo ""
+    echo "2. Access the web interface:"
+    echo "   http://$(hostname -I | awk '{print $1}'):5000"
+    echo ""
+    echo "3. Login with your admin credentials"
+    echo ""
+    echo "For production deployment with Gunicorn:"
+    echo "   gunicorn -w 4 -b 0.0.0.0:5000 --timeout 120 run:app"
+    echo ""
+fi
