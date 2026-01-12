@@ -318,17 +318,17 @@ sudo systemctl status vpn-webui
 
 ### Sudo Access
 
-Required sudoers configuration (`/etc/sudoers.d/vpn-webui`):
+Required sudoers configuration (`/etc/sudoers.d/netauthvpn`):
 
 ```bash
-your-user ALL=(ALL) NOPASSWD: /bin/systemctl restart openvpn-server@server
-your-user ALL=(ALL) NOPASSWD: /bin/systemctl restart freeradius
-your-user ALL=(ALL) NOPASSWD: /bin/systemctl restart dnsmasq
-your-user ALL=(ALL) NOPASSWD: /bin/systemctl status *
-your-user ALL=(ALL) NOPASSWD: /sbin/iptables *
-your-user ALL=(ALL) NOPASSWD: /sbin/iptables-save *
-your-user ALL=(ALL) NOPASSWD: /sbin/iptables-restore *
-your-user ALL=(ALL) NOPASSWD: /bin/cp /tmp/hosts.tmp /etc/hosts
+netauthvpn ALL=(ALL) NOPASSWD: /bin/systemctl restart openvpn-server@server
+netauthvpn ALL=(ALL) NOPASSWD: /bin/systemctl restart freeradius
+netauthvpn ALL=(ALL) NOPASSWD: /bin/systemctl restart dnsmasq
+netauthvpn ALL=(ALL) NOPASSWD: /bin/systemctl status *
+netauthvpn ALL=(ALL) NOPASSWD: /sbin/iptables *
+netauthvpn ALL=(ALL) NOPASSWD: /sbin/iptables-save *
+netauthvpn ALL=(ALL) NOPASSWD: /sbin/iptables-restore *
+netauthvpn ALL=(ALL) NOPASSWD: /bin/cp /tmp/hosts.tmp /etc/hosts
 ```
 
 ### Application Security
