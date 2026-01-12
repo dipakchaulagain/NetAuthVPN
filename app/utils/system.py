@@ -132,7 +132,7 @@ class SystemManager:
     def reload_iptables():
         """Reload iptables (apply saved rules)"""
         # This is safe even for operators
-        cmd = "sudo iptables-restore < /etc/iptables/rules.v4"
+        cmd = "sudo iptables-restore /etc/iptables/rules.v4"
         result = SystemManager._run_command(cmd)
         
         if result['success']:
