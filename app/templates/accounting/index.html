@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+
+{% block title %}Accounting - VPN Management{% endblock %}
+{% block page_title %}Accounting & Logs{% endblock %}
+
+{% block content %}
+<div class="card mb-3">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="fas fa-filter"></i> Filters</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('accounting.index') }}">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" value="{{ username_filter }}"
+                        placeholder="Search username">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Date From</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Date To</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Event Type</label>
+                    <select name="event_type" class="form-select">
+                        <option value="vpn_sessions" {% if event_type=='vpn_sessions' %}selected{% endif %}>VPN Sessions
+                        </option>
+                        <option value="auth_attempts" {% if event_type=='auth_attempts' %}selected{% endif %}>Auth
+                            Attempts</option>
+                        <option value="webui_actions" {% if event_type=='webui_actions' %}selected{% endif %}>WebUI
+                            Actions</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Total Sessions</h6>
+                        <h3 class="mb-0">{{ stats.total_sessions }}</h3>
+                    </div>
+                    <div class="text-primary">
+                        <i class="fas fa-network-wired fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Active Sessions</h6>
+                        <h3 class="mb-0 text-success">{{ stats.active_sessions }}</h3>
+                    </div>
+                    <div class="text-success">
+                        <i class="fas fa-plug fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Data (30 days)</h6>
+                        <h3 class="mb-0">{{ stats.total_data_gb }} GB</h3>
+                    </div>
+                    <div class="text-info">
+                        <i class="fas fa-database fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-1">Auth Success Rate</h6>
+                        <h3 class="mb-0">{{ stats.auth_success_rate }}%</h3>
+                    </div>
+                    <div class="text-warning">
+                        <i class="fas fa-shield-alt fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts -->
+<div class="row mb-3">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Sessions Over Time (Last 30 Days)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="sessionsChart" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Authentication Attempts</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="authChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Top Users by Data Usage (Last 30 Days)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="usersChart" height="60"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-clock"></i> Top Users by Session Time (Last 30 Days)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="sessionTimeChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-link"></i> Top Users by Connection Count (Last 30 Days)</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="connectionCountChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-list"></i> Logs</h5>
+        <a href="{{ url_for('accounting.export_csv', username=username_filter, date_from=date_from, date_to=date_to, event_type=event_type) }}"
+            class="btn btn-success">
+            <i class="fas fa-download"></i> Export CSV
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Username</th>
+                        <th>Event</th>
+                        <th>VPN IP</th>
+                        <th>Public IP</th>
+                        <th>Duration</th>
+                        <th>Data</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td><small>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp else '-' }}</small>
+                        </td>
+                        <td><strong>{{ log.username }}</strong></td>
+                        <td>{{ log.event }}</td>
+                        <td><code>{{ log.ip or '-' }}</code></td>
+                        <td><code>{{ log.calling_station or '-' }}</code></td>
+                        <td>{{ log.duration or '-' }}</td>
+                        <td>{{ log.bytes or '-' }}</td>
+                        <td>
+                            {% if log.status == 'Active' or log.status == 'Access-Accept' %}
+                            <span class="badge bg-success">{{ log.status }}</span>
+                            {% elif log.status == 'Completed' %}
+                            <span class="badge bg-secondary">{{ log.status }}</span>
+                            {% else %}
+                            <span class="badge bg-warning">{{ log.status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">No logs found for the selected filters</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if results and results.pages > 1 %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if results.has_prev %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('accounting.index', page=results.prev_num, username=username_filter, date_from=date_from, date_to=date_to, event_type=event_type) }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for page_num in results.iter_pages() %}
+                {% if page_num %}
+                <li class="page-item {% if page_num == results.page %}active{% endif %}">
+                    <a class="page-link"
+                        href="{{ url_for('accounting.index', page=page_num, username=username_filter, date_from=date_from, date_to=date_to, event_type=event_type) }}">{{
+                        page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+                {% endfor %}
+
+                {% if results.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('accounting.index', page=results.next_num, username=username_filter, date_from=date_from, date_to=date_to, event_type=event_type) }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // Fetch chart data
+    fetch('{{ url_for("accounting.stats") }}')
+        .then(response => response.json())
+        .then(data => {
+            // Sessions over time chart
+            const sessionsCtx = document.getElementById('sessionsChart').getContext('2d');
+            new Chart(sessionsCtx, {
+                type: 'line',
+                data: {
+                    labels: data.sessions_by_day.map(d => d.date),
+                    datasets: [{
+                        label: 'Sessions',
+                        data: data.sessions_by_day.map(d => d.count),
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Top users chart
+            const usersCtx = document.getElementById('usersChart').getContext('2d');
+            new Chart(usersCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.top_users.map(u => u.username),
+                    datasets: [{
+                        label: 'Data Usage (MB)',
+                        data: data.top_users.map(u => u.data_mb),
+                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Authentication attempts chart
+            const authCtx = document.getElementById('authChart').getContext('2d');
+            new Chart(authCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: data.auth_stats.map(a => a.status),
+                    datasets: [{
+                        data: data.auth_stats.map(a => a.count),
+                        backgroundColor: [
+                            'rgba(75, 192, 192, 0.5)',
+                            'rgba(255, 99, 132, 0.5)',
+                            'rgba(255, 205, 86, 0.5)'
+                        ],
+                        borderColor: [
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(255, 205, 86, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Top users by session time chart
+            const sessionTimeCtx = document.getElementById('sessionTimeChart').getContext('2d');
+            new Chart(sessionTimeCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.top_users_by_time.map(u => u.username),
+                    datasets: [{
+                        label: 'Session Time (Hours)',
+                        data: data.top_users_by_time.map(u => u.total_hours),
+                        backgroundColor: 'rgba(153, 102, 255, 0.5)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Hours'
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Top users by connection count chart
+            const connectionCountCtx = document.getElementById('connectionCountChart').getContext('2d');
+            new Chart(connectionCountCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.top_users_by_connections.map(u => u.username),
+                    datasets: [{
+                        label: 'Number of Connections',
+                        data: data.top_users_by_connections.map(u => u.connections),
+                        backgroundColor: 'rgba(255, 159, 64, 0.5)',
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            },
+                            title: {
+                                display: true,
+                                text: 'Connections'
+                            }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Error loading chart data:', error);
+        });
+</script>
+{% endblock %}

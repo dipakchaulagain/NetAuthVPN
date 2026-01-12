@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Audit Logs - VPN Management{% endblock %}
+{% block page_title %}Audit Logs{% endblock %}
+
+{% block content %}
+<!-- Admin Navigation Tabs -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url_for('admin.users') }}">
+            <i class="fas fa-users-cog"></i> Portal Users
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link active" href="{{ url_for('admin.audit_logs') }}">
+            <i class="fas fa-history"></i> Audit Logs
+        </a>
+    </li>
+</ul>
+
+<div class="card mb-3">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="fas fa-filter"></i> Filters</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('admin.audit_logs') }}">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control" value="{{ username_filter }}"
+                        placeholder="Search username">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Action</label>
+                    <input type="text" name="action" class="form-control" value="{{ action_filter }}"
+                        placeholder="Search action">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Date From</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Date To</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">&nbsp;</label>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="fas fa-history"></i> Portal User Actions</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Resource</th>
+                        <th>Details</th>
+                        <th>IP Address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs.items %}
+                    <tr>
+                        <td><small>{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</small></td>
+                        <td><strong>{{ log.user.username }}</strong></td>
+                        <td>
+                            {% if 'Add' in log.action or 'Create' in log.action %}
+                            <span class="badge bg-success">{{ log.action }}</span>
+                            {% elif 'Delete' in log.action %}
+                            <span class="badge bg-danger">{{ log.action }}</span>
+                            {% elif 'Edit' in log.action or 'Update' in log.action %}
+                            <span class="badge bg-primary">{{ log.action }}</span>
+                            {% elif 'Toggle' in log.action or 'Disable' in log.action %}
+                            <span class="badge bg-warning">{{ log.action }}</span>
+                            {% elif 'login' in log.action.lower() %}
+                            <span class="badge bg-info">{{ log.action }}</span>
+                            {% else %}
+                            <span class="badge bg-secondary">{{ log.action }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.resource_type %}
+                            <code>{{ log.resource_type }}
+                                {% if log.resource_id %}#{{ log.resource_id }}{% endif %}
+                            </code>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if log.details %}
+                            <small>{{ log.details }}</small>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td><code>{{ log.ip_address or '-' }}</code></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">No audit logs found</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if logs.pages > 1 %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if logs.has_prev %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('admin.audit_logs', page=logs.prev_num, username=username_filter, action=action_filter, date_from=date_from, date_to=date_to) }}">Previous</a>
+                </li>
+                {% endif %}
+
+                {% for page_num in logs.iter_pages() %}
+                {% if page_num %}
+                <li class="page-item {% if page_num == logs.page %}active{% endif %}">
+                    <a class="page-link"
+                        href="{{ url_for('admin.audit_logs', page=page_num, username=username_filter, action=action_filter, date_from=date_from, date_to=date_to) }}">{{
+                        page_num }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+                {% endif %}
+                {% endfor %}
+
+                {% if logs.has_next %}
+                <li class="page-item">
+                    <a class="page-link"
+                        href="{{ url_for('admin.audit_logs', page=logs.next_num, username=username_filter, action=action_filter, date_from=date_from, date_to=date_to) }}">Next</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Services - VPN Management{% endblock %}
+{% block page_title %}System Services{% endblock %}
+
+{% block content %}
+<div class="row">
+    {% for service_name, status in services.items() %}
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-server"></i> {{ service_name }}
+                </h5>
+                <span
+                    class="badge {% if status.running %}badge-service-running{% else %}badge-service-stopped{% endif %}">
+                    {% if status.running %}Running{% else %}Stopped{% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless table-sm">
+                    <tr>
+                        <th style="width: 120px;">Status:</th>
+                        <td>
+                            {% if status.active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% if status.uptime %}
+                    <tr>
+                        <th>Uptime:</th>
+                        <td>{{ status.uptime }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if status.memory %}
+                    <tr>
+                        <th>Memory:</th>
+                        <td>{{ status.memory }}</td>
+                    </tr>
+                    {% endif %}
+                    {% if status.pid %}
+                    <tr>
+                        <th>PID:</th>
+                        <td><code>{{ status.pid }}</code></td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Enabled:</th>
+                        <td>
+                            {% if status.enabled %}
+                            <i class="fas fa-check text-success"></i> Yes
+                            {% else %}
+                            <i class="fas fa- times text-danger"></i> No
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+
+                <div class="mt-3">
+                    {% if current_user.has_role('Administrator', 'Operator') %}
+                    {% if current_user.role == 'Administrator' or (current_user.role == 'Operator' and service_name ==
+                    'dnsmasq') %}
+                    <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal"
+                        data-bs-target="#restartModal{{ loop.index }}">
+                        <i class="fas fa-redo"></i> Restart
+                    </button>
+                    {% endif %}
+                    {% endif %}
+
+
+                    <button type="button" class="btn btn-sm btn-info" data-bs-toggle="modal" data-bs-target="#logsModal"
+                        onclick="loadServiceLogs('{{ service_name }}')">
+                        <i class="fas fa-file-alt"></i> View Logs
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- IPTables Status -->
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-shield-alt"></i> Firewall (iptables)</h5>
+    </div>
+    <div class="card-body">
+        <p><strong>Total Rules:</strong> <code>{{ rule_count }}</code></p>
+
+        {% if current_user.has_role('Administrator', 'Operator') %}
+        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#reloadIptablesModal">
+            <i class="fas fa-sync"></i> Reload iptables
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Service Restart Modals -->
+{% for service_name, status in services.items() %}
+<div class="modal fade" id="restartModal{{ loop.index }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Restart {{ service_name }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to restart <strong>{{ service_name }}</strong>?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('services.restart_service', service_name=service_name) }}"
+                    class="d-inline">
+                    <button type="submit" class="btn btn-warning">Restart</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Reload iptables Modal -->
+{% if current_user.has_role('Administrator', 'Operator') %}
+<div class="modal fade" id="reloadIptablesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Reload iptables</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>This will reload iptables rules from <code>/etc/iptables/rules.v4</code></p>
+                <p>Are you sure you want to continue?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('services.reload_iptables') }}" class="d-inline">
+                    <button type="submit" class="btn btn-warning">Reload</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Service Logs Modal -->
+<div class="modal fade" id="logsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Service Logs: <span id="logServiceName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="logsLoading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading logs...</p>
+                </div>
+                <pre id="logsContent" class="bg-dark text-light p-3 rounded"
+                    style="display: none; max-height: 500px; overflow-y: auto; font-size: 0.85rem;"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function loadServiceLogs(serviceName) {
+        // Update modal title
+        document.getElementById('logServiceName').textContent = serviceName;
+
+        // Show loading, hide content
+        document.getElementById('logsLoading').style.display = 'block';
+        document.getElementById('logsContent').style.display = 'none';
+
+        // Fetch logs via AJAX
+        fetch(`/services/logs/${serviceName}`)
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading, show content
+                document.getElementById('logsLoading').style.display = 'none';
+                document.getElementById('logsContent').style.display = 'block';
+                document.getElementById('logsContent').textContent = data.logs;
+            })
+            .catch(error => {
+                document.getElementById('logsLoading').style.display = 'none';
+                document.getElementById('logsContent').style.display = 'block';
+                document.getElementById('logsContent').textContent = 'Error loading logs: ' + error;
+            });
+    }
+</script>
+{% endblock %}

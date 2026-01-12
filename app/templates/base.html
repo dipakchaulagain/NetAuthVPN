@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ site_settings.site_title }}{% endblock %}</title>
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    {% if site_settings.favicon_path %}
+    <link rel="icon" href="{{ site_settings.favicon_path }}" type="image/x-icon">
+    {% endif %}
+
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --sidebar-width: 250px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar-brand {
+            padding: 1.5rem 1rem;
+            font-size: 1.5rem;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .sidebar-nav {
+            padding: 0;
+            list-style: none;
+        }
+
+        .sidebar-nav-item {
+            margin: 0.25rem 0.5rem;
+        }
+
+        .sidebar-nav-link {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            border-radius: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .sidebar-nav-link:hover,
+        .sidebar-nav-link.active {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .sidebar-nav-link i {
+            width: 20px;
+            margin-right: 0.5rem;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            background: #f8f9fa;
+        }
+
+        .top-nav {
+            background: white;
+            border-bottom: 1px solid #dee2e6;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .content-wrapper {
+            padding: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            border-left: 4px solid var(--primary-color);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .badge-service-running {
+            background: #10b981;
+        }
+
+        .badge-service-stopped {
+            background: #ef4444;
+        }
+
+        .table-actions .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+
+<body>
+    {% if current_user.is_authenticated %}
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            {% if site_settings.logo_path %}
+            <img src="{{ site_settings.logo_path }}" alt="{{ site_settings.site_title }}"
+                style="max-height: 40px; max-width: 200px;">
+            {% else %}
+            <i class="fas fa-shield-alt"></i> {{ site_settings.site_title }}
+            {% endif %}
+        </div>
+        <ul class="sidebar-nav">
+            <li class="sidebar-nav-item">
+                <a href="{{ url_for('dashboard.index') }}"
+                    class="sidebar-nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+            </li>
+
+            {% if current_user.has_role('Administrator', 'Operator', 'Viewer') %}
+            <li class="sidebar-nav-item">
+                <a href="{{ url_for('users.index') }}"
+                    class="sidebar-nav-link {% if request.endpoint and 'users.' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-users"></i> VPN Users
+                </a>
+            </li>
+            {% endif %}
+
+            {% if current_user.has_role('Administrator', 'Operator') %}
+            <li class="sidebar-nav-item">
+                <a href="{{ url_for('security.index') }}"
+                    class="sidebar-nav-link {% if request.endpoint and 'security.' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-shield-alt"></i> Security Rules
+                </a>
+            </li>
+
+            <li class="sidebar-nav-item">
+                <a href="{{ url_for('dns.index') }}"
+                    class="sidebar-nav-link {% if request.endpoint and 'dns.' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-network-wired"></i> DNS Records
+                </a>
+            </li>
+            {% endif %}
+
+            {% if current_user.has_role('Administrator', 'Operator', 'Viewer', 'Auditor') %}
+            <li class="sidebar-nav-item">
+                <a href="{{ url_for('accounting.index') }}"
+                    class="sidebar-nav-link {% if request.endpoint and 'accounting' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-chart-line"></i> Accounting
+                </a>
+            </li>
+            {% endif %}
+
+            {% if current_user.has_role('Administrator', 'Operator', 'Viewer') %}
+            <li class="sidebar-nav-item">
+                <a href="{{ url_for('services.index') }}"
+                    class="sidebar-nav-link {% if request.endpoint and 'services.' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-cogs"></i> Services
+                </a>
+            </li>
+            {% endif %}
+
+            {% if current_user.has_role('Administrator') %}
+            <li class="sidebar-nav-item">
+                <a href="{{ url_for('admin.users') }}"
+                    class="sidebar-nav-link {% if request.endpoint and 'admin.' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-users-cog"></i> Admin
+                </a>
+            </li>
+            <li class="sidebar-nav-item">
+                <a href="{{ url_for('settings.index') }}"
+                    class="sidebar-nav-link {% if request.endpoint and 'settings.' in request.endpoint %}active{% endif %}">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="top-nav">
+            <div>
+                <h4 class="mb-0">{% block page_title %}Dashboard{% endblock %}</h4>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-user-circle"></i> {{ current_user.full_name }}
+                    <span class="badge bg-secondary">{{ current_user.role }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}">
+                            <i class="fas fa-key"></i> Change Password
+                        </a></li>
+                    <li>
+                        <hr class="dropdown-divider">
+                    </li>
+                    <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Toast Container for Flash Messages (Top-Right) -->
+        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="toast align-items-center text-white bg-{{ 'danger' if category == 'danger' else ('warning' if category == 'warning' else ('info' if category == 'info' else 'success')) }} border-0"
+                role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i
+                            class="fas fa-{{ 'exclamation-circle' if category == 'danger' else ('exclamation-triangle' if category == 'warning' else ('info-circle' if category == 'info' else 'check-circle')) }}"></i>
+                        {{ message }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                        aria-label="Close"></button>
+                </div>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <div class="content-wrapper">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+    {% else %}
+    <!-- Login page content -->
+    {% block login_content %}{% endblock %}
+    {% endif %}
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        // Initialize DataTables and Toasts
+        $(document).ready(function () {
+            // DataTables
+            $('.datatable').DataTable({
+                pageLength: 25,
+                order: [[0, 'asc']]
+            });
+
+            // Auto-show all toasts on page load with 5 second auto-hide
+            var toastElList = [].slice.call(document.querySelectorAll('.toast'));
+            var toastList = toastElList.map(function (toastEl) {
+                var toast = new bootstrap.Toast(toastEl, {
+                    autohide: true,
+                    delay: 5000
+                });
+                toast.show();
+                return toast;
+            });
+
+            // Apply theme color to sidebar
+            {% if current_user.is_authenticated %}
+            var themeColor = '{{ site_settings.theme_color }}';
+            var themeColorSecondary = '{{ site_settings.theme_color_secondary }}';
+            if (themeColor && themeColorSecondary) {
+                var sidebar = document.querySelector('.sidebar');
+                if (sidebar) {
+                    sidebar.style.background = 'linear-gradient(135deg, ' + themeColor + ' 0%, ' + themeColorSecondary + ' 100%)';
+                }
+            }
+            {% endif %}
+        });
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>
