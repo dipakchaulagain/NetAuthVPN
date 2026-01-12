@@ -4,12 +4,12 @@
 <div class="container">
     <div class="row justify-content-center align-items-center" style="min-height: 100vh;">
         <div class="col-md-5">
-            <div class="card shadow">
+            <div class="card shadow" id="loginCard">
                 <div class="card-body p-5">
                     <div class="text-center mb-4">
-                        <i class="fas fa-shield-alt fa-3x text-primary"></i>
+                        <i class="fas fa-shield-alt fa-3x text-white"></i>
                         <h2 class="mt-3">NetAuthVPN</h2>
-                        <p class="text-muted">Sign in to your account</p>
+                        <p class="text-white-50">Sign in to your account</p>
                     </div>
 
                     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -42,7 +42,7 @@
                         </div>
 
                         <div class="d-grid">
-                            {{ form.submit(class="btn btn-primary btn-lg") }}
+                            {{ form.submit(class="btn btn-light btn-lg text-primary fw-bold") }}
                         </div>
                     </form>
                 </div>
@@ -53,4 +53,26 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Apply theme color gradient to login card to match sidebar
+        var loginCard = document.getElementById('loginCard');
+        if (loginCard) {
+            // Get colors from site_settings (assuming injected via context processor)
+            // We can read them from the sidebar style logic if available globally, 
+            // or just inject them again here safely.
+            {% if site_settings %}
+            var themeColor = "{{ site_settings.theme_color }}";
+            var themeColorSecondary = "{{ site_settings.theme_color_secondary }}";
+
+            loginCard.style.background = `linear-gradient(135deg, ${themeColor} 0%, ${themeColorSecondary} 100%)`;
+            loginCard.style.color = 'white';
+            loginCard.style.border = 'none';
+            {% endif %}
+        }
+    });
+</script>
 {% endblock %}
