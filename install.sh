@@ -16,10 +16,10 @@ if [ "$EUID" -ne 0 ] && ! sudo -n true 2>/dev/null; then
 fi
 
 # Get the directory where the script is located
-SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd "$SCRIPT_DIR"
+SOURCE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+INSTALL_DIR="/opt/netauthapp"
 
-echo "[1/9] Checking Python installation..."
+echo "[1/10] Checking Python installation..."
 if ! command -v python3 &> /dev/null; then
     echo "[ERROR] Python 3 is not installed"
     exit 1
@@ -29,12 +29,36 @@ PYTHON_VERSION=$(python3 --version | cut -d' ' -f2 | cut -d'.' -f1-2)
 echo "Found Python $PYTHON_VERSION"
 
 echo ""
-echo "[2/9] Installing system dependencies..."
+echo "[2/10] Installing system dependencies..."
 sudo apt-get update -y
-sudo apt-get install -y python3-pip python3-venv python3-dev libldap2-dev libsasl2-dev libssl-dev mysql-client
+sudo apt-get install -y python3-pip python3-venv python3-dev libldap2-dev libsasl2-dev libssl-dev mysql-client rsync
 
 echo ""
-echo "[3/9] Creating Python virtual environment..."
+echo "[3/10] deploying to $INSTALL_DIR..."
+if [ "$SOURCE_DIR" != "$INSTALL_DIR" ]; then
+    echo "Copying files to $INSTALL_DIR..."
+    mkdir -p "$INSTALL_DIR"
+    
+    # Sync files excluding venv, logs, uploads, .git, .env, __pycache__
+    rsync -av --exclude 'venv' \
+              --exclude 'logs' \
+              --exclude 'app/static/uploads' \
+              --exclude '.git' \
+              --exclude '.env' \
+              --exclude '__pycache__' \
+              --exclude '*.pyc' \
+              "$SOURCE_DIR/" "$INSTALL_DIR/"
+    
+    echo "Files deployed successfully."
+    cd "$INSTALL_DIR"
+    SCRIPT_DIR="$INSTALL_DIR"
+else
+    echo "Already running from $INSTALL_DIR"
+    SCRIPT_DIR="$INSTALL_DIR"
+fi
+
+echo ""
+echo "[4/10] Creating Python virtual environment..."
 if [ ! -d "venv" ]; then
     python3 -m venv venv
     echo "Virtual environment created"
@@ -43,13 +67,13 @@ else
 fi
 
 echo ""
-echo "[4/9] Activating virtual environment and installing Python packages..."
+echo "[5/10] Activating virtual environment and installing Python packages..."
 source venv/bin/activate
 pip install --upgrade pip setuptools wheel
 pip install -r requirements.txt
 
 echo ""
-echo "[5/9] Checking .env configuration..."
+echo "[6/10] Checking .env configuration..."
 
 # Check if .env exists
 if [ ! -f ".env" ]; then
@@ -120,7 +144,7 @@ source .env
 set +a
 
 echo ""
-echo "[6/9] Testing database connection..."
+echo "[7/10] Testing database connection..."
 if ! mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" -h"$MYSQL_HOST" -e "SELECT 1;" &> /dev/null; then
     echo "[ERROR] Cannot connect to MySQL database"
     echo "Please check your database credentials in .env"
@@ -129,12 +153,12 @@ fi
 echo "Database connection successful"
 
 echo ""
-echo "[7/9] Importing database schema..."
+echo "[8/10] Importing database schema..."
 mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" -h"$MYSQL_HOST" "$MYSQL_DB" < schema.sql
 echo "Database schema imported successfully"
 
 echo ""
-echo "[8/9] Creating initial admin user..."
+echo "[9/10] Creating initial admin user..."
 read -p "Create admin user? (Y/n): " CREATE_ADMIN
 CREATE_ADMIN=${CREATE_ADMIN:-Y}
 
@@ -167,7 +191,7 @@ if [ "$CREATE_ADMIN" = "y" ] || [ "$CREATE_ADMIN" = "Y" ]; then
 fi
 
 echo ""
-echo "[9/9] Setting up directories and permissions..."
+echo "[10/10] Setting up directories and permissions..."
 mkdir -p logs
 mkdir -p app/static/uploads
 chmod 755 logs
@@ -175,7 +199,7 @@ chmod 755 app/static/uploads
 
 
 echo ""
-echo "[10/10] Systemd Service Setup"
+echo "[Additional] Systemd Service Setup"
 read -p "Do you want to setup systemd service for NetAuthVPN? (Y/n): " SETUP_SERVICE
 SETUP_SERVICE=${SETUP_SERVICE:-Y}
 
