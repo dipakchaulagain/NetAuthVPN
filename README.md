@@ -62,7 +62,7 @@ A comprehensive Flask-based web application for managing OpenVPN/FreeRADIUS/LDAP
 ## 🚀 Quick Installation
 
 ```bash
-cd /path/to/vpn-gw/webui
+cd /path/to/netauthvpn
 chmod +x install.sh
 ./install.sh
 ```
@@ -182,9 +182,9 @@ After=network.target mysql.service
 Type=simple
 User=your-username
 Group=your-username
-WorkingDirectory=/path/to/vpn-gw/webui
-Environment="PATH=/path/to/vpn-gw/webui/venv/bin"
-ExecStart=/path/to/vpn-gw/webui/venv/bin/gunicorn -w 4 -b 0.0.0.0:5000 --timeout 120 run:app
+WorkingDirectory=/path/to/netauthvpn
+Environment="PATH=/path/to/netauthvpn/venv/bin"
+ExecStart=/path/to/netauthvpn/venv/bin/gunicorn -w 4 -b 0.0.0.0:5000 --timeout 120 run:app
 Restart=always
 RestartSec=10
 
@@ -440,7 +440,7 @@ mysqldump -u radius -p radius > backup_$(date +%Y%m%d).sql
 ### Update Application
 
 ```bash
-cd /path/to/vpn-gw/webui
+cd /path/to/netauthvpn
 git pull  # If using git
 source venv/bin/activate
 pip install -r requirements.txt --upgrade
