@@ -132,6 +132,64 @@
             padding: 0.25rem 0.5rem;
             font-size: 0.875rem;
         }
+
+        /* Mobile Sidebar Toggle Button - Default Hidden */
+        .sidebar-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #333;
+            cursor: pointer;
+            margin-right: 1rem;
+        }
+
+        /* Overlay for mobile sidebar */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .sidebar-toggle {
+                display: block;
+            }
+
+            .top-nav {
+                padding: 1rem;
+            }
+
+            .content-wrapper {
+                padding: 1rem;
+            }
+        }
     </style>
 
     {% block extra_css %}{% endblock %}
@@ -217,10 +275,16 @@
         </ul>
     </div>
 
+    <!-- Overlay for mobile sidebar -->
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
     <!-- Main Content -->
     <div class="main-content">
         <div class="top-nav">
-            <div>
+            <div class="d-flex align-items-center">
+                <button class="sidebar-toggle" id="sidebarToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
                 <h4 class="mb-0">{% block page_title %}Dashboard{% endblock %}</h4>
             </div>
             <div class="dropdown">
@@ -299,6 +363,36 @@
                 });
                 toast.show();
                 return toast;
+            });
+
+            // Mobile Sidebar Toggle
+            const sidebarEl = document.querySelector('.sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function () {
+                    sidebarEl.classList.toggle('active');
+                    sidebarOverlay.classList.toggle('active');
+                });
+            }
+
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', function () {
+                    sidebarEl.classList.remove('active');
+                    sidebarOverlay.classList.remove('active');
+                });
+            }
+
+            // Close sidebar when clicking a link on mobile
+            const sidebarLinks = document.querySelectorAll('.sidebar-nav-link');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', function () {
+                    if (window.innerWidth < 992) {
+                        sidebarEl.classList.remove('active');
+                        sidebarOverlay.classList.remove('active');
+                    }
+                });
             });
 
             // Apply theme color to sidebar
