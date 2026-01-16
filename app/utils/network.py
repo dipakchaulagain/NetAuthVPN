@@ -19,8 +19,8 @@ class NetworkManager:
     
     @staticmethod
     def get_allocated_ips():
-        """Get all currently allocated IPs from database"""
-        users = VPNUser.query.filter_by(active=True).all()
+        """Get all currently allocated IPs from database (including inactive users with IPs)"""
+        users = VPNUser.query.filter(VPNUser.ip_address.isnot(None)).all()
         return {user.ip_address for user in users}
     
     @staticmethod

@@ -53,7 +53,7 @@ class VPNUser(db.Model):
     username = db.Column(db.String(64), unique=True, nullable=False, index=True)
     full_name = db.Column(db.String(128))
     email = db.Column(db.String(128))
-    ip_address = db.Column(db.String(15), unique=True, nullable=False, index=True)
+    ip_address = db.Column(db.String(15), unique=True, nullable=True, index=True)
     ldap_synced = db.Column(db.Boolean, default=False)
     last_sync = db.Column(db.DateTime)
     active = db.Column(db.Boolean, default=True)

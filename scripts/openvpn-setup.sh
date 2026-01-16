@@ -201,7 +201,6 @@ username-as-common-name
 verify-client-cert none
 client-config-dir /etc/openvpn/ccd
 ccd-exclusive
-push "redirect-gateway def1 bypass-dhcp"
 push "dhcp-option DNS $DNS_Server_1"
 $( [ -n "$DNS_Server_2" ] && echo "push \"dhcp-option DNS $DNS_Server_2\"" )
 $( [ -n "$DNS_Server_3" ] && echo "push \"dhcp-option DNS $DNS_Server_3\"" )

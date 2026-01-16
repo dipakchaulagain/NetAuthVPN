@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS vpn_users (
     username VARCHAR(64) UNIQUE NOT NULL,
     full_name VARCHAR(128),
     email VARCHAR(128),
-    ip_address VARCHAR(15) UNIQUE NOT NULL,
+    ip_address VARCHAR(15) UNIQUE,
     ldap_synced BOOLEAN DEFAULT FALSE,
     last_sync TIMESTAMP NULL,
     active BOOLEAN DEFAULT TRUE,

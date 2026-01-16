@@ -27,6 +27,7 @@
                         <th>Port</th>
                         <th>Action</th>
                         <th>Status</th>
+                        <th>Applied</th>
                         <th>Description</th>
                         {% if current_user.has_role('Administrator', 'Operator') %}
                         <th>Actions</th>
@@ -54,13 +55,27 @@
                             <span class="badge bg-warning">Disabled</span>
                             {% endif %}
                         </td>
+                        <td>
+                            {% if applied_users.get(rule.user.id, False) %}
+                            <span class="badge bg-info"><i class="fas fa-check"></i> Applied</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Not Applied</span>
+                            {% endif %}
+                        </td>
                         <td>{{ rule.description or '-' }}</td>
                         {% if current_user.has_role('Administrator', 'Operator') %}
                         <td class="text-nowrap">
+                            {% if applied_users.get(rule.user.id, False) %}
+                            <button type="button" class="btn btn-sm btn-secondary" disabled
+                                title="Rules already applied">
+                                <i class="fas fa-check"></i>
+                            </button>
+                            {% else %}
                             <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal"
                                 data-bs-target="#applyRulesModal{{ rule.user.id }}" title="Apply rules">
                                 <i class="fas fa-check"></i>
                             </button>
+                            {% endif %}
                             {% if rule.enabled %}
                             <button type="button" class="btn btn-sm btn-warning" data-bs-toggle="modal"
                                 data-bs-target="#toggleRuleModal{{ rule.id }}" title="Disable rule">
@@ -81,7 +96,7 @@
                         </tr>
                         {% else %}
                         <tr>
-                            <td colspan="8" class="text-center text-muted">No security rules configured</td>
+                            <td colspan="9" class="text-center text-muted">No security rules configured</td>
                         </tr>
                         {% endfor %}
                 </tbody>

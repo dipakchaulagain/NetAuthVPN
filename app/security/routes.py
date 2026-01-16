@@ -12,10 +12,18 @@ security_bp = Blueprint('security', __name__)
 @role_required('Administrator', 'Operator', 'Viewer')
 def index():
     """Security rules management"""
-    rules = SecurityRule.query.order_by(SecurityRule.created_at.desc()).all()
+    rules = SecurityRule.query.filter_by(active=True).order_by(SecurityRule.created_at.desc()).all()
     users = VPNUser.query.filter_by(active=True).order_by(VPNUser.username).all()
     
-    return render_template('security/index.html', rules=rules, users=users)
+    # Check which users have rules already applied in iptables
+    applied_users = {}
+    for user in users:
+        if user.ip_address:
+            applied_users[user.id] = IPTablesManager.is_rules_applied(user.username, user.ip_address)
+        else:
+            applied_users[user.id] = False
+    
+    return render_template('security/index.html', rules=rules, users=users, applied_users=applied_users)
 
 @security_bp.route('/add-rule', methods=['POST'])
 @role_required('Administrator', 'Operator')
@@ -92,12 +100,12 @@ def add_rule():
 @security_bp.route('/toggle-rule/<int:rule_id>', methods=['POST'])
 @role_required('Administrator', 'Operator')
 def toggle_rule(rule_id):
-    """Enable/Disable a security rule"""
+    """Enable/Disable a security rule and auto-apply to iptables"""
     rule = SecurityRule.query.get_or_404(rule_id)
     confirmation = request.form.get('confirmation', '').strip()
     
-    # Check confirmation text
-    if confirmation.lower() != 'disable':
+    # Check confirmation text (only required when disabling)
+    if rule.enabled and confirmation.lower() != 'disable':
         flash('Incorrect confirmation text. Please type "Disable" to confirm.', 'danger')
         return redirect(url_for('security.index'))
     
@@ -109,13 +117,25 @@ def toggle_rule(rule_id):
     log_action('Toggle Security Rule', 'SecurityRule', rule_id,
               f'{status.capitalize()} rule: {rule.protocol}:{rule.port} -> {rule.route}')
     
-    flash(f'Security rule {status}. Click "Apply Rules" to activate changes.', 'success')
+    # Auto-apply rules to iptables
+    user = rule.user
+    if user and user.ip_address:
+        try:
+            rules = user.security_rules.filter_by(active=True).all()
+            IPTablesManager.apply_user_rules(user, rules)
+            IPTablesManager.save_rules()
+            flash(f'Security rule {status} and applied to iptables.', 'success')
+        except Exception as e:
+            flash(f'Security rule {status} but failed to apply to iptables: {str(e)}', 'warning')
+    else:
+        flash(f'Security rule {status}. User has no IP address assigned.', 'warning')
+    
     return redirect(url_for('security.index'))
 
 @security_bp.route('/delete-rule/<int:rule_id>', methods=['POST'])
 @role_required('Administrator', 'Operator')
 def delete_rule(rule_id):
-    """Delete a security rule"""
+    """Delete a security rule and auto-apply to iptables"""
     rule = SecurityRule.query.get_or_404(rule_id)
     confirmation = request.form.get('confirmation', '').strip()
     
@@ -124,7 +144,7 @@ def delete_rule(rule_id):
         flash('Incorrect confirmation text. Please type "delete" to confirm.', 'danger')
         return redirect(url_for('security.index'))
     
-    user_id = rule.vpn_user_id
+    user = rule.user
     
     rule.active = False
     db.session.commit()
@@ -132,7 +152,18 @@ def delete_rule(rule_id):
     log_action('Delete Security Rule', 'SecurityRule', rule_id,
               f'Deleted rule: {rule.protocol}:{rule.port} -> {rule.route}')
     
-    flash('Security rule deleted. Click "Apply Rules" to activate changes.', 'success')
+    # Auto-apply rules to iptables
+    if user and user.ip_address:
+        try:
+            rules = user.security_rules.filter_by(active=True).all()
+            IPTablesManager.apply_user_rules(user, rules)
+            IPTablesManager.save_rules()
+            flash('Security rule deleted and applied to iptables.', 'success')
+        except Exception as e:
+            flash(f'Security rule deleted but failed to apply to iptables: {str(e)}', 'warning')
+    else:
+        flash('Security rule deleted. User has no IP address assigned.', 'warning')
+    
     return redirect(url_for('security.index'))
 
 @security_bp.route('/apply-rules/<int:user_id>', methods=['POST'])

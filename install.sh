@@ -224,6 +224,7 @@ netauthvpn ALL=(ALL) NOPASSWD: /bin/systemctl status *
 netauthvpn ALL=(ALL) NOPASSWD: /sbin/iptables *
 netauthvpn ALL=(ALL) NOPASSWD: /sbin/iptables-save *
 netauthvpn ALL=(ALL) NOPASSWD: /sbin/iptables-restore *
+netauthvpn ALL=(ALL) NOPASSWD: /usr/sbin/netfilter-persistent *
 netauthvpn ALL=(ALL) NOPASSWD: /bin/cp /tmp/hosts.tmp /etc/hosts
 EOF
     chmod 0440 /etc/sudoers.d/netauthvpn

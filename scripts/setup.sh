@@ -365,7 +365,7 @@ configure_firewall() {
 
     # Forwarding rules between VPN and internet
     iptables -A FORWARD -i $NET_IFACE -o tun0 -m state --state RELATED,ESTABLISHED -j ACCEPT
-    iptables -A FORWARD -i tun0 -o $NET_IFACE -j ACCEPT
+    #iptables -A FORWARD -i tun0 -o $NET_IFACE -j ACCEPT
     
     # Allow DNS forwarding from VPN clients
     iptables -A FORWARD -i tun0 -o $NET_IFACE -p udp --dport 53 -j ACCEPT

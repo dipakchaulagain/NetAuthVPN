@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app
 from flask_login import login_required, current_user
 from app import db
 from app.models import VPNUser, VPNUserRoute
@@ -229,22 +229,96 @@ def delete_route(user_id, route_id):
 @users_bp.route('/<int:user_id>/toggle-active', methods=['POST'])
 @role_required('Administrator')
 def toggle_active(user_id):
-    """Toggle user active status"""
+    """Toggle user active status with IP and security rules management"""
+    from app.utils import IPTablesManager
+    
     user = VPNUser.query.get_or_404(user_id)
+    old_status = user.active
     user.active = not user.active
     
-    # Update Account-Status in radcheck
-    RADIUSManager.set_account_status(user.username, enabled=user.active)
+    try:
+        if not user.active:
+            # DISABLING USER
+            current_app.logger.info(f"Disabling user {user.username}, releasing IP {user.ip_address}")
+            
+            # 1. Remove all iptables rules for this user
+            if user.ip_address:
+                try:
+                    IPTablesManager.remove_user_rules(user.username)
+                    IPTablesManager.save_rules()
+                    current_app.logger.info(f"Removed iptables rules for {user.username}")
+                except Exception as e:
+                    current_app.logger.error(f"Error removing iptables rules for {user.username}: {e}")
+                    flash(f'Warning: Could not remove iptables rules: {str(e)}', 'warning')
+            
+            # 2. Release IP address (set to NULL)
+            old_ip = user.ip_address
+            user.ip_address = None
+            
+            # 3. Update Account-Status in radcheck to disabled
+            RADIUSManager.set_account_status(user.username, enabled=False)
+            
+            # 4. Remove IP from radreply (Framed-IP-Address)
+            if old_ip:
+                from app.models import RadReply
+                RadReply.query.filter_by(
+                    username=user.username,
+                    attribute='Framed-IP-Address'
+                ).delete()
+            
+            # Note: Routes are kept in database as requested
+            
+            db.session.commit()
+            
+            log_action('Disable User', 'VPNUser', user_id, 
+                      f'Disabled {user.username}, released IP {old_ip}, removed iptables rules, kept routes')
+            
+            flash(f'User {user.username} disabled. IP {old_ip} released, security rules removed, routes preserved.', 'success')
+            
+        else:
+            # ENABLING USER
+            current_app.logger.info(f"Enabling user {user.username}")
+            
+            # 1. Assign new IP address
+            new_ip = NetworkManager.get_next_available_ip()
+            
+            if not new_ip:
+                user.active = old_status  # Rollback status
+                db.session.rollback()
+                flash('Cannot enable user: No available IP addresses in the VPN subnet', 'danger')
+                return redirect(url_for('users.view', user_id=user_id))
+            
+            user.ip_address = new_ip
+            
+            # 2. Update RADIUS with new IP
+            if not RADIUSManager.set_user_ip(user.username, new_ip):
+                user.active = old_status  # Rollback
+                user.ip_address = None
+                db.session.rollback()
+                flash('Failed to update RADIUS with new IP address', 'danger')
+                return redirect(url_for('users.view', user_id=user_id))
+            
+            # 3. Update Account-Status in radcheck to enabled
+            RADIUSManager.set_account_status(user.username, enabled=True)
+            
+            # Note: Security rules remain in database but are NOT automatically applied
+            # User must click "Apply Rules" to activate them with the new IP
+            
+            db.session.commit()
+            
+            log_action('Enable User', 'VPNUser', user_id, 
+                      f'Enabled {user.username}, assigned new IP {new_ip}')
+            
+            flash(f'User {user.username} enabled with new IP {new_ip}. Security rules must be re-applied.', 'success')
     
-    db.session.commit()
-    
-    log_action('Toggle User Status', 'VPNUser', user_id, 
-              f'Set {user.username} active={user.active}')
-    
-    status = 'activated' if user.active else 'deactivated'
-    flash(f'User {user.username} {status}', 'success')
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error toggling user status: {e}")
+        flash(f'Error: {str(e)}', 'danger')
+        return redirect(url_for('users.view', user_id=user_id))
     
     return redirect(url_for('users.view', user_id=user_id))
+
 
 @users_bp.route('/<int:user_id>/download-config')
 @login_required
